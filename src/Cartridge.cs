@@ -105,7 +105,8 @@ public class Cartridge {
     }
 }
 
-public enum Mirroring {
+public enum Mirroring
+{
     Horizontal,
     Vertical,
     SingleScreenA,

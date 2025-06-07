@@ -1,4 +1,5 @@
-public class CPU {
+public class CPU
+{
     public byte A, X, Y;
     public ushort PC, SP;
     public byte status; //Flags (P)
@@ -17,7 +18,8 @@ public class CPU {
     private bool irqRequested;
     private bool nmiRequested;
 
-    public CPU(IBus bus) {
+    public CPU(IBus bus)
+    {
         A = X = Y = 0;
         PC = 0x0000;
         SP = 0x0000;
@@ -33,7 +35,8 @@ public class CPU {
         Console.WriteLine("CPU init");
     }
 
-    public void Reset() {
+    public void Reset()
+    {
         A = X = Y = 0;
         SP = 0xFD;
         status = 0x24;
@@ -43,19 +46,25 @@ public class CPU {
         PC = (ushort)((high << 8) | low);
     }
 
-    public void SetFlag(int bit, bool value) {
-        if (value) {
+    public void SetFlag(int bit, bool value)
+    {
+        if (value)
+        {
             status |= (byte)(1 << bit);
-        } else {
+        }
+        else
+        {
             status &= (byte)~(1 << bit);
         }
     }
 
-    public bool GetFlag(int bit) {
+    public bool GetFlag(int bit)
+    {
         return (status & (1 << bit)) != 0;
     }
 
-    public void SetZN(byte value) {
+    public void SetZN(byte value)
+    {
         SetFlag(FLAG_Z, value == 0); //Zero
         SetFlag(FLAG_N, (value & 0x80) != 0); //Negative
     }
@@ -76,44 +85,52 @@ public class CPU {
     }
     */
 
-    private byte Fetch() {
+    private byte Fetch()
+    {
         return bus.Read(PC++);
     }
 
-    public ushort Fetch16Bits() {
+    public ushort Fetch16Bits()
+    {
         byte low = Fetch();
         byte high = Fetch();
         return (ushort)((high << 8) | low);
     }
 
-    
-    public void RequestIRQ(bool line) {
+
+    public void RequestIRQ(bool line)
+    {
         irqRequested = line;
     }
 
-    public void RequestNMI() {
+    public void RequestNMI()
+    {
         nmiRequested = true;
     }
 
-    public int ExecuteInstruction() {
-        if (nmiRequested) {
+    public int ExecuteInstruction()
+    {
+        if (nmiRequested)
+        {
             nmiRequested = false;
             return NMI();
         }
 
-        if (GetFlag(FLAG_I) == false && irqRequested) {
+        if (GetFlag(FLAG_I) == false && irqRequested)
+        {
             irqRequested = false;
             return IRQ();
         }
 
         byte opcode = Fetch();
 
-        switch (opcode) {
+        switch (opcode)
+        {
             //BRK, NOP, RTI
             case 0x00: return BRK();
             case 0xEA: return NOP();
             case 0x40: return RTI();
-            
+
             //LDA, LDX, LDY, STA, STX, STY
             case 0xA9: return LDR(ref A, Immediate, 2);
             case 0xA5: return LDR(ref A, ZeroPage, 3);
@@ -124,12 +141,12 @@ public class CPU {
             case 0xA1: return LDR(ref A, IndirectX, 6);
             case 0xB1: return LDR(ref A, IndirectY, 5);
             case 0xA2: return LDR(ref X, Immediate, 2);
-            case 0xA6: return LDR(ref X, ZeroPage, 3);      
+            case 0xA6: return LDR(ref X, ZeroPage, 3);
             case 0xB6: return LDR(ref X, ZeroPageY, 4);
             case 0xAE: return LDR(ref X, Absolute, 4);
             case 0xBE: return LDR(ref X, AbsoluteY, 4);
             case 0xA0: return LDR(ref Y, Immediate, 2);
-            case 0xA4: return LDR(ref Y, ZeroPage, 3);      
+            case 0xA4: return LDR(ref Y, ZeroPage, 3);
             case 0xB4: return LDR(ref Y, ZeroPageX, 4);
             case 0xAC: return LDR(ref Y, Absolute, 4);
             case 0xBC: return LDR(ref Y, AbsoluteX, 4);
@@ -146,7 +163,7 @@ public class CPU {
             case 0x84: return STR(ref Y, ZeroPage, 3);
             case 0x94: return STR(ref Y, ZeroPageX, 4);
             case 0x8C: return STR(ref Y, Absolute, 4);
-            
+
             //TAX, TAY, TXA, TYA
             case 0xAA: return TRR(ref X, ref A, Implied, 2);
             case 0xA8: return TRR(ref Y, ref A, Implied, 2);
@@ -262,7 +279,7 @@ public class CPU {
             case 0x6C: return JMP(Indirect, 5);
             case 0x20: return JSR();
             case 0x60: return RTS();
-            
+
             //BCC, BCS, BEQ, BMI, BNE, BPL, BVC, BVS
             case 0x90: return BIF(!GetFlag(FLAG_C), Relative, 2);
             case 0xB0: return BIF(GetFlag(FLAG_C), Relative, 2);
@@ -282,14 +299,15 @@ public class CPU {
             case 0xF8: return FSC(FLAG_D, true, Implied, 2);
             case 0x78: return FSC(FLAG_I, true, Implied, 2);
             default:
-                Console.WriteLine("Unimplemented Opcode: " + opcode.ToString("X2") + " , PC: " + (PC-1).ToString("X4"));
+                Console.WriteLine("Unimplemented Opcode: " + opcode.ToString("X2") + " , PC: " + (PC - 1).ToString("X4"));
                 Environment.Exit(1);
                 return 0;
         }
     }
 
     //Load/Store Operations
-    private int LDR(ref byte r, Func<AddrResult> mode, int baseCycles) {
+    private int LDR(ref byte r, Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         //r = addr.value;
         r = bus.Read(addr.address);
@@ -298,7 +316,8 @@ public class CPU {
         return baseCycles + addr.extraCycles;
     }
 
-    private int STR(ref byte r, Func<AddrResult> mode, int baseCycles) {
+    private int STR(ref byte r, Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         bus.Write(addr.address, r);
 
@@ -306,7 +325,8 @@ public class CPU {
     }
 
     //Register Transfer
-    private int TRR(ref byte r1, ref byte r2, Func<AddrResult> mode, int baseCycles) {
+    private int TRR(ref byte r1, ref byte r2, Func<AddrResult> mode, int baseCycles)
+    {
         r1 = r2;
         SetZN(r1);
 
@@ -314,46 +334,54 @@ public class CPU {
     }
 
     //Stack Operations
-    private void StackPush(byte value) {
+    private void StackPush(byte value)
+    {
         bus.Write((ushort)(0x0100 + SP), value);
         SP--;
         SP &= 0x00FF;
     }
 
-    private byte StackPop() {
+    private byte StackPop()
+    {
         SP++;
         SP &= 0x00FF;
         return bus.Read((ushort)(0x0100 + SP));
     }
 
-    private int TSX(Func<AddrResult> mode, int baseCycles) {
+    private int TSX(Func<AddrResult> mode, int baseCycles)
+    {
         X = (byte)SP;
         SetZN(X);
         return baseCycles;
     }
 
-    private int TXS(Func<AddrResult> mode, int baseCycles) {
+    private int TXS(Func<AddrResult> mode, int baseCycles)
+    {
         SP = X;
         return baseCycles;
     }
 
-    private int PHA(Func<AddrResult> mode, int baseCycles) {
+    private int PHA(Func<AddrResult> mode, int baseCycles)
+    {
         StackPush(A);
         return baseCycles;
     }
 
-    private int PHP(Func<AddrResult> mode, int baseCycles) {
+    private int PHP(Func<AddrResult> mode, int baseCycles)
+    {
         StackPush((byte)(status | (1 << FLAG_B) | (1 << FLAG_UNUSED)));
         return baseCycles;
     }
 
-    private int PLA(Func<AddrResult> mode, int baseCycles) {
+    private int PLA(Func<AddrResult> mode, int baseCycles)
+    {
         A = StackPop();
         SetZN(A);
         return baseCycles;
     }
 
-    private int PLP(Func<AddrResult> mode, int baseCycles) {
+    private int PLP(Func<AddrResult> mode, int baseCycles)
+    {
         status = StackPop();
         SetFlag(FLAG_UNUSED, true);
         SetFlag(FLAG_B, false);
@@ -361,7 +389,8 @@ public class CPU {
     }
 
     //Logical
-    private int AND(Func<AddrResult> mode, int baseCycles) {
+    private int AND(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         A = (byte)(A & bus.Read(addr.address));
         SetZN(A);
@@ -369,7 +398,8 @@ public class CPU {
         return baseCycles + addr.extraCycles;
     }
 
-    private int EOR(Func<AddrResult> mode, int baseCycles) {
+    private int EOR(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         A = (byte)(A ^ bus.Read(addr.address));
         SetZN(A);
@@ -377,14 +407,16 @@ public class CPU {
         return baseCycles + addr.extraCycles;
     }
 
-    private int ORA(Func<AddrResult> mode, int baseCycles) {
+    private int ORA(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         A = (byte)(A | bus.Read(addr.address));
         SetZN(A);
         return baseCycles + addr.extraCycles;
     }
 
-    private int BIT(Func<AddrResult> mode, int baseCycles) {
+    private int BIT(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         byte value = bus.Read(addr.address);
 
@@ -396,7 +428,8 @@ public class CPU {
     }
 
     //Arithmetic
-    private int ADC(Func<AddrResult> mode, int baseCycles) {
+    private int ADC(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         ushort sum = (ushort)(A + bus.Read(addr.address) + (GetFlag(FLAG_C) ? 1 : 0));
 
@@ -410,7 +443,8 @@ public class CPU {
         return baseCycles + addr.extraCycles;
     }
 
-    private int SBC(Func<AddrResult> mode, int baseCycles) {
+    private int SBC(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         ushort value = (ushort)(bus.Read(addr.address) ^ 0xFF);
         ushort sum = (ushort)(A + value + (GetFlag(FLAG_C) ? 1 : 0));
@@ -425,7 +459,8 @@ public class CPU {
         return baseCycles + addr.extraCycles;
     }
 
-    private int CPR(byte r, Func<AddrResult> mode, int baseCycles) {
+    private int CPR(byte r, Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         byte M = bus.Read(addr.address);
         ushort temp = (ushort)(r - M);
@@ -438,7 +473,8 @@ public class CPU {
     }
 
     //Increments and Decrements
-    private int INC(Func<AddrResult> mode, int baseCycles) {
+    private int INC(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         byte result = (byte)(bus.Read(addr.address) + 1);
         bus.Write(addr.address, result);
@@ -447,7 +483,8 @@ public class CPU {
         return baseCycles; //No extra cycle to add
     }
 
-    private int DEC(Func<AddrResult> mode, int baseCycles) {
+    private int DEC(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         byte result = (byte)(bus.Read(addr.address) - 1);
         bus.Write(addr.address, result);
@@ -456,28 +493,34 @@ public class CPU {
         return baseCycles; //No extra cycle to add
     }
 
-    private int INR(ref byte r, Func<AddrResult> mode, int baseCycles) {
+    private int INR(ref byte r, Func<AddrResult> mode, int baseCycles)
+    {
         r++;
         SetZN(r);
         return baseCycles;
     }
 
-    private int DER(ref byte r, Func<AddrResult> mode, int baseCycles) {
+    private int DER(ref byte r, Func<AddrResult> mode, int baseCycles)
+    {
         r--;
         SetZN(r);
         return baseCycles;
     }
 
     //Shifts
-    private int ASL(Func<AddrResult> mode, int baseCycles) {
+    private int ASL(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         byte value = mode == Accumulator ? A : bus.Read(addr.address);
         SetFlag(FLAG_C, (value & 0x80) != 0);
         byte result = (byte)(value << 1);
 
-        if (mode == Accumulator) {
+        if (mode == Accumulator)
+        {
             A = result;
-        } else {
+        }
+        else
+        {
             bus.Write(addr.address, result);
         }
 
@@ -486,15 +529,19 @@ public class CPU {
         return baseCycles;
     }
 
-    private int LSR(Func<AddrResult> mode, int baseCycles) {
+    private int LSR(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         byte value = mode == Accumulator ? A : bus.Read(addr.address);
         SetFlag(FLAG_C, (value & 0x01) != 0);
         byte result = (byte)(value >> 1);
 
-        if (mode == Accumulator) {
+        if (mode == Accumulator)
+        {
             A = result;
-        } else {
+        }
+        else
+        {
             bus.Write(addr.address, result);
         }
 
@@ -503,16 +550,20 @@ public class CPU {
         return baseCycles;
     }
 
-    private int ROL(Func<AddrResult> mode, int baseCycles) {
+    private int ROL(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         byte value = mode == Accumulator ? A : bus.Read(addr.address);
         bool oldCarry = GetFlag(FLAG_C);
         SetFlag(FLAG_C, (value & 0x80) != 0);
         byte result = (byte)((value << 1) | (oldCarry ? 1 : 0));
 
-        if (mode == Accumulator) {
+        if (mode == Accumulator)
+        {
             A = result;
-        } else {
+        }
+        else
+        {
             bus.Write(addr.address, result);
         }
 
@@ -521,16 +572,20 @@ public class CPU {
         return baseCycles;
     }
 
-    private int ROR(Func<AddrResult> mode, int baseCycles) {
+    private int ROR(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         byte value = mode == Accumulator ? A : bus.Read(addr.address);
         bool oldCarry = GetFlag(FLAG_C);
         SetFlag(FLAG_C, (value & 0x01) != 0);
         byte result = (byte)((value >> 1) | (oldCarry ? 0x80 : 0));
 
-        if (mode == Accumulator) {
+        if (mode == Accumulator)
+        {
             A = result;
-        } else {
+        }
+        else
+        {
             bus.Write(addr.address, result);
         }
 
@@ -540,13 +595,15 @@ public class CPU {
     }
 
     //Jumps and Calls
-    private int JMP(Func<AddrResult> mode, int baseCycles) {
+    private int JMP(Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         PC = addr.address;
         return baseCycles;
     }
 
-    private int JSR() {
+    private int JSR()
+    {
         ushort targetLow = Fetch();
         ushort targetHigh = Fetch();
 
@@ -561,7 +618,8 @@ public class CPU {
         return 6;
     }
 
-    private int RTS() {
+    private int RTS()
+    {
         byte low = StackPop();
         byte high = StackPop();
         PC = (ushort)(((high << 8) | low) + 1);
@@ -569,11 +627,13 @@ public class CPU {
     }
 
     //Branches
-    private int BIF(bool condition, Func<AddrResult> mode, int baseCycles) {
+    private int BIF(bool condition, Func<AddrResult> mode, int baseCycles)
+    {
         var addr = mode();
         int extra = 0;
 
-        if (condition) {
+        if (condition)
+        {
             PC = addr.address;
             extra = 1 + addr.extraCycles;
         }
@@ -582,22 +642,25 @@ public class CPU {
     }
 
     //Status Flag Changes
-    private int FSC(int bit, bool state, Func<AddrResult> mode, int baseCycles) {
+    private int FSC(int bit, bool state, Func<AddrResult> mode, int baseCycles)
+    {
         SetFlag(bit, state);
         return baseCycles;
     }
-    
+
     //System Functions
-    private int NOP() {
+    private int NOP()
+    {
         return 2;
     }
 
-    private int BRK() {
+    private int BRK()
+    {
         PC++;
-    
+
         StackPush((byte)((PC >> 8) & 0xFF));
         StackPush((byte)(PC & 0xFF));
-        
+
         byte pushedStatus = (byte)(status | (1 << FLAG_B) | (1 << FLAG_UNUSED));
         StackPush(pushedStatus);
 
@@ -612,7 +675,8 @@ public class CPU {
         return 7;
     }
 
-    private int RTI() {
+    private int RTI()
+    {
         status = StackPop();
         SetFlag(FLAG_UNUSED, true);
         SetFlag(FLAG_B, false);
@@ -624,8 +688,10 @@ public class CPU {
         return 6;
     }
 
-    public int IRQ() {
-        if (GetFlag(FLAG_I) == false) {
+    public int IRQ()
+    {
+        if (GetFlag(FLAG_I) == false)
+        {
             StackPush((byte)((PC >> 8) & 0xFF));
             StackPush((byte)(PC & 0xFF));
 
@@ -645,7 +711,8 @@ public class CPU {
         return 0;
     }
 
-    public int NMI() {
+    public int NMI()
+    {
         StackPush((byte)((PC >> 8) & 0xFF));
         StackPush((byte)(PC & 0xFF));
 
@@ -662,72 +729,85 @@ public class CPU {
         return 7;
     }
 
-    private struct AddrResult {
+    private struct AddrResult
+    {
         public ushort address;
         public int extraCycles;
 
-        public AddrResult(ushort addr, int extra) {
+        public AddrResult(ushort addr, int extra)
+        {
             address = addr;
             extraCycles = extra;
         }
     }
 
-    private AddrResult Implied() {
+    private AddrResult Implied()
+    {
         return new AddrResult(0, 0);
     }
 
-    private AddrResult Accumulator() {
+    private AddrResult Accumulator()
+    {
         return new AddrResult(0, 0);
     }
 
-    private AddrResult Immediate() {
+    private AddrResult Immediate()
+    {
         return new AddrResult(PC++, 0);
     }
 
-    private AddrResult ZeroPage() {
+    private AddrResult ZeroPage()
+    {
         byte addr = Fetch();
         return new AddrResult(addr, 0);
     }
 
-    private AddrResult ZeroPageX() {
+    private AddrResult ZeroPageX()
+    {
         byte baseAddr = Fetch();
         byte addr = (byte)(baseAddr + X);
         return new AddrResult(addr, 0);
     }
 
-    private AddrResult ZeroPageY() {
+    private AddrResult ZeroPageY()
+    {
         byte baseAddr = Fetch();
         byte addr = (byte)(baseAddr + Y);
         return new AddrResult(addr, 0);
     }
 
-    private AddrResult Absolute() {
+    private AddrResult Absolute()
+    {
         ushort addr = Fetch16Bits();
         return new AddrResult(addr, 0);
     }
 
-    private AddrResult AbsoluteX() {
+    private AddrResult AbsoluteX()
+    {
         ushort baseAddr = Fetch16Bits();
         ushort effective = (ushort)(baseAddr + X);
         int penalty = HasPageCrossPenalty(baseAddr, effective) ? 1 : 0;
         return new AddrResult(effective, penalty);
     }
 
-    private AddrResult AbsoluteY() {
+    private AddrResult AbsoluteY()
+    {
         ushort baseAddr = Fetch16Bits();
         ushort effective = (ushort)(baseAddr + Y);
         int penalty = HasPageCrossPenalty(baseAddr, effective) ? 1 : 0;
         return new AddrResult(effective, penalty);
     }
 
-    private AddrResult IndirectX() {
+    private AddrResult IndirectX()
+    {
         byte zp = Fetch();
         byte ptr = (byte)(zp + X);
         ushort addr = (ushort)(bus.Read(ptr) | (bus.Read((byte)(ptr + 1)) << 8));
         return new AddrResult(addr, 0);
     }
 
-    private AddrResult IndirectY() {
+    private AddrResult IndirectY()
+    {
         byte zp = Fetch();
         ushort baseAddr = (ushort)(bus.Read(zp) | (bus.Read((byte)(zp + 1)) << 8));
         ushort effective = (ushort)(baseAddr + Y);
@@ -735,7 +815,8 @@ public class CPU {
         return new AddrResult(effective, penalty);
     }
 
-    private AddrResult Indirect() {
+    private AddrResult Indirect()
+    {
         ushort ptr = Fetch16Bits();
         byte lo = bus.Read(ptr);
         byte hi = (ptr & 0x00FF) == 0x00FF ? bus.Read((ushort)(ptr & 0xFF00)) : bus.Read((ushort)(ptr + 1));
@@ -743,14 +824,16 @@ public class CPU {
         return new AddrResult(addr, 0);
     }
 
-    private AddrResult Relative() {
+    private AddrResult Relative()
+    {
         sbyte offset = (sbyte)Fetch();
         ushort target = (ushort)(PC + offset);
         int penalty = HasPageCrossPenalty(PC, target) ? 1 : 0;
         return new AddrResult(target, penalty);
     }
 
-    private bool HasPageCrossPenalty(ushort baseAddr, ushort effectiveAddr) {
+    private bool HasPageCrossPenalty(ushort baseAddr, ushort effectiveAddr)
+    {
         return (baseAddr & 0xFF00) != (effectiveAddr & 0xFF00);
     }
 }

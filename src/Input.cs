@@ -1,10 +1,12 @@
 using Raylib_cs;
 
-public class Input {
+public class Input
+{
     private byte controllerState = 0;
     private byte controllerShift = 0;
 
-    public void UpdateController() {
+    public void UpdateController()
+    {
         controllerState = 0;
         if (Raylib.IsKeyDown(KeyboardKey.X)) controllerState |= 1 << 0; // A
         if (Raylib.IsKeyDown(KeyboardKey.Z)) controllerState |= 1 << 1; // B
@@ -16,13 +18,16 @@ public class Input {
         if (Raylib.IsKeyDown(KeyboardKey.Right)) controllerState |= 1 << 7; // Right
     }
 
-    public void Write4016(byte value) {
-        if ((value & 1) != 0) {
+    public void Write4016(byte value)
+    {
+        if ((value & 1) != 0)
+        {
             controllerShift = controllerState;
         }
     }
 
-    public byte Read4016() {
+    public byte Read4016()
+    {
         byte result = (byte)(controllerShift & 1);
         controllerShift >>= 1;
         return result;

@@ -1,6 +1,7 @@
 using Raylib_cs;
 
-public class PPU {
+public class PPU
+{
     private Bus bus;
 
     private byte[] vram; //2KB VRAM
@@ -40,7 +41,8 @@ public class PPU {
     private Color[] frameBuffer;
     Color[] scanlineBuffer = new Color[ScreenWidth];
 
-    public PPU(Bus bus) {
+    public PPU(Bus bus)
+    {
         this.bus = bus;
 
         vram = new byte[2048];
@@ -64,17 +66,23 @@ public class PPU {
         Console.WriteLine("PPU init");
     }
 
-    public void Step(int elapsedCycles) {
-        for (int i = 0; i < elapsedCycles; i++) {
-            if (scanline == 0 && scanlineCycle == 0) {
+    public void Step(int elapsedCycles)
+    {
+        for (int i = 0; i < elapsedCycles; i++)
+        {
+            if (scanline == 0 && scanlineCycle == 0)
+            {
                 PPUSTATUS &= 0x3F;
             }
 
-            if (scanline >= 0 && scanline < 240 && scanlineCycle == 260) {
-                if ((PPUMASK & 0x18) != 0 && bus.cartridge.mapper is Mapper4) {
+            if (scanline >= 0 && scanline < 240 && scanlineCycle == 260)
+            {
+                if ((PPUMASK & 0x18) != 0 && bus.cartridge.mapper is Mapper4)
+                {
                     Mapper4 mmc3 = (Mapper4)bus.cartridge.mapper;
                     mmc3.RunScanlineIRQ();
-                    if (mmc3.IRQPending()) {
+                    if (mmc3.IRQPending())
+                    {
                         bus.cpu.RequestIRQ(true);
                         mmc3.ClearIRQ();
                     }
@@ -83,28 +91,34 @@ public class PPU {
 
             scanlineCycle++;
 
-            if (scanlineCycle >= 341) {
+            if (scanlineCycle >= 341)
+            {
                 scanlineCycle = 0;
 
-                if (scanline >= 0 && scanline < 240) {
+                if (scanline >= 0 && scanline < 240)
+                {
                     CopyXFromTToV();
                     RenderScanline(scanline);
                     IncrementY();
                 }
 
-                if (scanline == 241) {
+                if (scanline == 241)
+                {
                     PPUSTATUS |= 0x80;
-                    if ((PPUCTRL & 0x80) != 0) {
+                    if ((PPUCTRL & 0x80) != 0)
+                    {
                         bus.cpu.RequestNMI();
                     }
                 }
 
-                if (scanline == 261) {
+                if (scanline == 261)
+                {
                     v = t;
                 }
 
                 scanline++;
-                if (scanline == TotalScanlines) {
+                if (scanline == TotalScanlines)
+                {
                     scanline = 0;
                 }
             }
@@ -112,22 +126,25 @@ public class PPU {
     }
 
     bool[] bgMask = new bool[ScreenWidth];
-    private void RenderScanline(int scanline) {
+    private void RenderScanline(int scanline)
+    {
         Array.Clear(scanlineBuffer, 0, ScreenWidth);
         Array.Clear(bgMask, 0, ScreenWidth);
-        
+
         RenderBackground(bgMask);
         RenderSprite(bgMask);
 
         Array.Copy(scanlineBuffer, 0, frameBuffer, scanline * ScreenWidth, ScreenWidth);
     }
 
-    public void RenderBackground(bool[] bgMask) {
+    public void RenderBackground(bool[] bgMask)
+    {
         if ((PPUMASK & 0x08) == 0) return;
 
         ushort renderV = v;
 
-        for (int tile = 0; tile < 33; tile++) {
+        for (int tile = 0; tile < 33; tile++)
+        {
             int coarseX = renderV & 0x001F;
             int coarseY = (renderV >> 5) & 0x001F;
             int nameTable = (renderV >> 10) & 0x0003;
@@ -150,7 +167,8 @@ public class PPU {
             int attrShift = ((coarseY % 4) / 2) * 4 + ((coarseX % 4) / 2) * 2;
             int paletteIndex = (attrByte >> attrShift) & 0x03;
 
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < 8; i++)
+            {
                 int pixel = tile * 8 + i - fineX;
                 if (pixel < 0 || pixel >= ScreenWidth) continue;
 
@@ -168,15 +186,18 @@ public class PPU {
         }
     }
 
-    public void RenderSprite(bool[] bgMask) {
+    public void RenderSprite(bool[] bgMask)
+    {
         bool showSprites = (PPUMASK & 0x10) != 0;
 
-        if (showSprites) {
+        if (showSprites)
+        {
             bool isSprite8x16 = (PPUCTRL & 0x20) != 0;
-            
+
             bool[] spritePixelDrawn = new bool[ScreenWidth];
 
-            for (int i = 0; i < 64; i++) {
+            for (int i = 0; i < 64; i++)
+            {
                 int offset = i * 4;
                 byte spriteY = oam[offset];
                 byte tileIndex = oam[offset + 1];
@@ -186,7 +207,7 @@ public class PPU {
                 int paletteIndex = attributes & 0b11;
                 bool flipX = (attributes & 0x40) != 0;
                 bool flipY = (attributes & 0x80) != 0;
-                bool priority  = (attributes & 0x20) == 0;
+                bool priority = (attributes & 0x20) == 0;
 
                 int tileHeight = isSprite8x16 ? 16 : 8;
                 if (scanline < spriteY || scanline >= spriteY + tileHeight)
@@ -204,7 +225,8 @@ public class PPU {
                 byte plane0 = Read((ushort)(baseAddr + (subY % 8)));
                 byte plane1 = Read((ushort)(baseAddr + (subY % 8) + 8));
 
-                for (int x = 0; x < 8; x++) {
+                for (int x = 0; x < 8; x++)
+                {
                     int bit = flipX ? x : 7 - x;
                     int bit0 = (plane0 >> bit) & 1;
                     int bit1 = (plane1 >> bit) & 1;
@@ -212,24 +234,29 @@ public class PPU {
                     if (color == 0) continue;
 
                     int px = spriteX + x;
-                    
+
                     if (px < 0 || px >= ScreenWidth) continue;
 
                     //Sprite 0 hit detection
-                    if (i == 0 && bgMask[px] && color != 0 && Helper.debugs0h == false) {
+                    if (i == 0 && bgMask[px] && color != 0 && Helper.debugs0h == false)
+                    {
                         PPUSTATUS |= 0x40;
-                    } else if (Helper.debugs0h == true) { //Debug to skip check for Sprite0 Hit
+                    }
+                    else if (Helper.debugs0h == true)
+                    { //Debug to skip check for Sprite0 Hit
                         PPUSTATUS |= 0x40;
                     }
 
                     if (spritePixelDrawn[px]) continue;
-                    
+
                     bool shouldDraw = true;
-                    if (!priority  && bgMask[px]) {
+                    if (!priority && bgMask[px])
+                    {
                         shouldDraw = false;
                     }
 
-                    if (shouldDraw) {
+                    if (shouldDraw)
+                    {
                         scanlineBuffer[px] = GetSpriteColor(color, paletteIndex);
                         spritePixelDrawn[px] = true;
                     }
@@ -238,8 +265,10 @@ public class PPU {
         }
     }
 
-    public void WritePPURegister(ushort address, byte value) {
-        switch (address) {
+    public void WritePPURegister(ushort address, byte value)
+    {
+        switch (address)
+        {
             case 0x2000:
                 PPUCTRL = value;
                 t = (ushort)((t & 0xF3FF) | ((value & 0x03) << 10));
@@ -259,11 +288,14 @@ public class PPU {
                 oam[OAMADDR++] = OAMDATA;
                 break;
             case 0x2005:
-                if (!scrollLatch) {
+                if (!scrollLatch)
+                {
                     PPUSCROLLX = value;
                     fineX = (byte)(value & 0x07);
                     t = (ushort)((t & 0xFFE0) | (value >> 3));
-                } else {
+                }
+                else
+                {
                     PPUSCROLLY = value;
                     t = (ushort)((t & 0x8FFF) | ((value & 0x07) << 12));
                     t = (ushort)((t & 0xFC1F) | ((value & 0xF8) << 2));
@@ -271,10 +303,13 @@ public class PPU {
                 scrollLatch = !scrollLatch;
                 break;
             case 0x2006:
-                if (!addrLatch) {
+                if (!addrLatch)
+                {
                     t = (ushort)((value << 8) | (t & 0x00FF));
                     PPUADDR = t;
-                } else {
+                }
+                else
+                {
                     t = (ushort)((t & 0xFF00) | value);
                     PPUADDR = t;
                     v = t;
@@ -290,10 +325,12 @@ public class PPU {
         }
     }
 
-    public byte ReadPPURegister(ushort address) {
+    public byte ReadPPURegister(ushort address)
+    {
         byte result = 0x00;
 
-        switch (address) {
+        switch (address)
+        {
             case 0x2000:
                 result = PPUCTRL;
                 break;
@@ -311,26 +348,33 @@ public class PPU {
             case 0x2007:
                 result = ppuDataBuffer;
                 ppuDataBuffer = Read(PPUADDR);
-                
-                if (PPUADDR >= 0x3F00) {
+
+                if (PPUADDR >= 0x3F00)
+                {
                     result = ppuDataBuffer;
                 }
-                
+
                 PPUADDR += ((PPUCTRL & 0x04) != 0) ? (ushort)32 : (ushort)1;
                 return result;
         }
         return result;
     }
 
-    public byte Read(ushort address) {
+    public byte Read(ushort address)
+    {
         address = (ushort)(address & 0x3FFF);
 
-        if (address < 0x2000) {
+        if (address < 0x2000)
+        {
             return bus.cartridge.PPURead(address);
-        } else if (address >= 0x2000 && address <= 0x3EFF) {
+        }
+        else if (address >= 0x2000 && address <= 0x3EFF)
+        {
             ushort mirrored = MirrorVRAMAddress(address);
             return vram[mirrored];
-        } else if (address >= 0x3F00 && address <= 0x3FFF) {
+        }
+        else if (address >= 0x3F00 && address <= 0x3FFF)
+        {
             ushort mirrored = (ushort)(address & 0x1F);
             if (mirrored >= 0x10 && (mirrored % 4) == 0) mirrored -= 0x10;
             return paletteRAM[mirrored];
@@ -339,28 +383,36 @@ public class PPU {
         return 0;
     }
 
-    public void Write(ushort address, byte value) {
+    public void Write(ushort address, byte value)
+    {
         address = (ushort)(address & 0x3FFF);
 
-        if (address < 0x2000) {
+        if (address < 0x2000)
+        {
             bus.cartridge.PPUWrite(address, value);
-        } else if (address >= 0x2000 && address <= 0x3EFF) {
+        }
+        else if (address >= 0x2000 && address <= 0x3EFF)
+        {
             ushort mirrored = MirrorVRAMAddress(address);
             vram[mirrored] = value;
-        } else if (address >= 0x3F00 && address <= 0x3FFF) {
+        }
+        else if (address >= 0x3F00 && address <= 0x3FFF)
+        {
             ushort mirrored = (ushort)(address & 0x1F);
             if (mirrored >= 0x10 && (mirrored % 4) == 0) mirrored -= 0x10;
             paletteRAM[mirrored] = value;
         }
     }
 
-    private ushort MirrorVRAMAddress(ushort address) {
+    private ushort MirrorVRAMAddress(ushort address)
+    {
         ushort offset = (ushort)(address & 0x0FFF);
 
         int ntIndex = offset / 0x400;
         int innerOffset = offset % 0x400;
 
-        switch (bus.cartridge.mirroringMode) {
+        switch (bus.cartridge.mirroringMode)
+        {
             case Mirroring.Vertical:
                 return (ushort)((ntIndex % 2) * 0x400 + innerOffset);
             case Mirroring.Horizontal:
@@ -374,53 +426,72 @@ public class PPU {
         }
     }
 
-    public void WriteOAMDMA(byte page) {
+    public void WriteOAMDMA(byte page)
+    {
         ushort baseAddr = (ushort)(page << 8);
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < 256; i++)
+        {
             byte value = bus.Read((ushort)(baseAddr + i));
             oam[OAMADDR++] = value;
         }
     }
 
-    private void IncrementY() {
-        if ((v & 0x7000) != 0x7000) {
+    private void IncrementY()
+    {
+        if ((v & 0x7000) != 0x7000)
+        {
             v += 0x1000;
-        } else {
+        }
+        else
+        {
             v &= 0x8FFF;
             int y = (v & 0x03E0) >> 5;
-            if (y == 29) {
+            if (y == 29)
+            {
                 y = 0;
                 v ^= 0x0800;
-            } else if (y == 31) {
+            }
+            else if (y == 31)
+            {
                 y = 0;
-            } else {
+            }
+            else
+            {
                 y += 1;
             }
             v = (ushort)((v & 0xFC1F) | (y << 5));
         }
     }
 
-    private void IncrementX(ref ushort addr) {
-        if ((addr & 0x001F) == 31) {
+    private void IncrementX(ref ushort addr)
+    {
+        if ((addr & 0x001F) == 31)
+        {
             addr &= 0xFFE0;
             addr ^= 0x0400;
-        } else {
+        }
+        else
+        {
             addr++;
         }
     }
 
-    private void CopyXFromTToV() {
+    private void CopyXFromTToV()
+    {
         v = (ushort)((v & 0xFBE0) | (t & 0x041F));
     }
 
-    private Color GetSpriteColor(int colorIndex, int paletteIndex) {
+    private Color GetSpriteColor(int colorIndex, int paletteIndex)
+    {
         int paletteBase = 0x11 + paletteIndex * 4;
         byte paletteColor = paletteRAM[paletteBase + (colorIndex - 1)];
         return NesPalette[paletteColor % 64];
     }
 
-    private Color GetColorFromPalette(int colorIndex, int paletteIndex) {
-        if (colorIndex == 0) {
+    private Color GetColorFromPalette(int colorIndex, int paletteIndex)
+    {
+        if (colorIndex == 0)
+        {
             byte bgColorIndex = paletteRAM[0];
             return NesPalette[bgColorIndex % 64];
         }
@@ -428,17 +499,21 @@ public class PPU {
         int paletteBase = 1 + (paletteIndex * 4);
         byte paletteColorIndex = paletteRAM[(paletteBase + colorIndex - 1) % 32];
         return NesPalette[paletteColorIndex % 64];
-    }    
+    }
 
-    public void DrawFrame(int scale) {
-        for (int y = 0; y < ScreenHeight; y++) {
-            for (int x = 0; x < ScreenWidth; x++) {
+    public void DrawFrame(int scale)
+    {
+        for (int y = 0; y < ScreenHeight; y++)
+        {
+            for (int x = 0; x < ScreenWidth; x++)
+            {
                 Color color = frameBuffer[y * ScreenWidth + x];
                 Raylib.ImageDrawPixel(ref image, x, y, color);
             }
         }
 
-        unsafe {
+        unsafe
+        {
             Raylib.UpdateTexture(texture, image.Data);
         }
 

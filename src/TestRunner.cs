@@ -1,20 +1,28 @@
-public class TestRunner {
+public class TestRunner
+{
 
-    public TestRunner() {
+    public TestRunner()
+    {
 
     }
 
-    public void Run(string test) {
-        if (test != "all") {
-            if (!File.Exists(Path.Combine("test", "v1", test))) {
+    public void Run(string test)
+    {
+        if (test != "all")
+        {
+            if (!File.Exists(Path.Combine("test", "v1", test)))
+            {
                 Console.WriteLine("Test file \"" + Path.Combine("test", "v1", test) + "\" does not exist");
                 Console.WriteLine("Provide JSON test file, or to test all, pass in \"all\"");
                 Environment.Exit(1);
             }
             JSONTest jsonTest = new JSONTest();
             jsonTest.Run(Path.Combine("test", "v1", test));
-        } else {
-            if (!Directory.Exists(Path.Combine("test", "v1"))) {
+        }
+        else
+        {
+            if (!Directory.Exists(Path.Combine("test", "v1")))
+            {
                 Console.WriteLine("Could not find directory \"" + Path.Combine("test", "v1") + "\"");
                 Console.WriteLine("Provide JSON test file, or to test all, pass in \"all\"");
                 Environment.Exit(1);
@@ -42,14 +50,16 @@ public class TestRunner {
                 "f2.json", "f3.json", "f4.json", "f7.json", "fa.json", "fb.json", "fc.json", "ff.json"
             };
 
-            using StreamWriter log = new StreamWriter("log.txt", append: false) {AutoFlush = true};
+            using StreamWriter log = new StreamWriter("log.txt", append: false) { AutoFlush = true };
             int tested = 0;
             int skipped = 0;
 
             JSONTest jsonTest = new JSONTest();
 
-            foreach (string filePath in testFiles) {
-                if (skipArray.Contains(Path.GetFileName(filePath), StringComparer.OrdinalIgnoreCase)) {
+            foreach (string filePath in testFiles)
+            {
+                if (skipArray.Contains(Path.GetFileName(filePath), StringComparer.OrdinalIgnoreCase))
+                {
                     Console.WriteLine($"Skipping test: {Path.GetFileName(filePath)}");
                     log.WriteLine($"Skipping test: {Path.GetFileName(filePath)}");
                     skipped += 1;
